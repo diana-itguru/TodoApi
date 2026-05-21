@@ -1,6 +1,124 @@
-@TodoApi_HostAddress = http://localhost:5150
+### Настройка переменных окружения
+@baseUrl = http://localhost:5150
+@contentType = application/json
 
-GET {{TodoApi_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Регистрация обычного пользователя
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
 
-###
+{
+  "email": "user@example.com",
+  "password": "superpassword123"
+}
+
+### 2. Регистрация администратора (содержит "admin" в email)
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "adminpassword123"
+}
+
+### 3. Логин пользователя (и авто-сохранение токена в переменную)
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "user@example.com",
+  "password": "superpassword123"
+}
+
+> {%
+    // Этот скрипт Rider автоматически выполнит после ответа и сохранит токен
+    client.global.set("user_access_token", response.body.accessToken);
+    client.global.set("user_refresh_token", response.body.refreshToken);
+%}
+
+### 4. Логин администратора (и авто-сохранение токена)
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "adminpassword123"
+}
+
+> {%
+    client.global.set("admin_access_token", response.body.accessToken);
+%}
+
+
+### =================================================================
+### РАБОТА С ЗАДАЧАМИ (Тестируем под обычным пользователем)
+### =================================================================
+
+### 5. Создание новой задачи
+POST {{baseUrl}}/api/tasks
+Content-Type: {{contentType}}
+Authorization: Bearer {{user_access_token}}
+
+{
+  "title": "Купить молоко",
+  "description": "2% жирности, ультрапастеризованное"
+}
+
+> {%
+    // Сохраняем ID созданной задачи для последующих тестов обновления и удаления
+    client.global.set("taskId", response.body.id);
+%}
+
+### 6. Получение списка своих задач (Фильтрация, Поиск, Пагинация)
+// Параметры: page=1, limit=5, поиск по слову "молоко"
+GET {{baseUrl}}/api/tasks?page=1&limit=5&search=молоко
+Authorization: Bearer {{user_access_token}}
+
+### 7. Получение одной конкретной задачи по ID
+GET {{baseUrl}}/api/tasks/{{taskId}}
+Authorization: Bearer {{user_access_token}}
+
+### 8. Обновление задачи (перевод в статус "Выполнено")
+PUT {{baseUrl}}/api/tasks/{{taskId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{user_access_token}}
+
+{
+  "title": "Купить молоко и свежий хлеб",
+  "description": "2% жирности",
+  "isCompleted": true
+}
+
+
+### =================================================================
+### ПРОВЕРКА РОЛЕЙ И ОГРАНИЧЕНИЙ ACCESS CONTROL
+### =================================================================
+
+### 9. Запрос списка всех пользователей ОБЫЧНЫМ пользователем (Ожидаем ошибку 403)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{user_access_token}}
+
+### 10. Запрос списка всех пользователей АДМИНИСТРАТОРОМ (Ожидаем успех 200)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{admin_access_token}}
+
+
+### =================================================================
+### ОБНОВЛЕНИЕ ТОКЕНОВ И ВЫХОД
+### =================================================================
+
+### 11. Обновление Access токена через Refresh токен
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "accessToken": "{{user_access_token}}",
+  "refreshToken": "{{user_refresh_token}}"
+}
+
+### 12. Выход из системы (разлогин)
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{user_access_token}}
+
+### 13. Удаление задачи
+DELETE {{baseUrl}}/api/tasks/{{taskId}}
+Authorization: Bearer {{user_access_token}}
