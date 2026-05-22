@@ -19,7 +19,7 @@ public class UsersController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetMe()
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
         var user = await _context.Users.Find(u => u.Id == userId).Project(u => new { u.Id, u.Email, u.Role }).FirstOrDefaultAsync();
         return user == null ? NotFound() : Ok(user);
     }
@@ -27,7 +27,7 @@ public class UsersController : ControllerBase
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMe(UpdateUserDto dto)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
         
         var existingEmail = await _context.Users.Find(u => u.Email == dto.Email && u.Id != userId).FirstOrDefaultAsync();
         if (existingEmail != null) return BadRequest(new { message = "Этот email уже используется" });

@@ -19,10 +19,10 @@ public class TasksController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateTaskDto dto)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+        
         var task = new TodoTask
         {
-            Id = Guid.NewGuid(),
             Title = dto.Title,
             Description = dto.Description,
             UserId = userId
@@ -35,7 +35,7 @@ public class TasksController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] TaskParameters param)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value; // Строка
         var isAdmin = User.IsInRole("Admin");
 
         var filterBuilder = Builders<TodoTask>.Filter;
@@ -63,26 +63,26 @@ public class TasksController : ControllerBase
 
         return Ok(new { Total = totalItems, param.Page, param.Limit, Items = tasks });
     }
-
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
     {
         var task = await _context.Tasks.Find(t => t.Id == id).FirstOrDefaultAsync();
         if (task == null) return NotFound();
 
-        if (task.UserId != Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value) && !User.IsInRole("Admin"))
+        if (task.UserId != User.FindFirst(ClaimTypes.NameIdentifier)!.Value && !User.IsInRole("Admin"))
             return Forbid();
 
         return Ok(task);
     }
 
-    [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, UpdateTaskDto dto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, UpdateTaskDto dto)
     {
         var task = await _context.Tasks.Find(t => t.Id == id).FirstOrDefaultAsync();
         if (task == null) return NotFound();
 
-        if (task.UserId != Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value) && !User.IsInRole("Admin"))
+        if (task.UserId != User.FindFirst(ClaimTypes.NameIdentifier)!.Value && !User.IsInRole("Admin"))
             return Forbid();
 
         var update = Builders<TodoTask>.Update
@@ -94,13 +94,13 @@ public class TasksController : ControllerBase
         return Ok(new { message = "Задача успешно обновлена" });
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id)
     {
         var task = await _context.Tasks.Find(t => t.Id == id).FirstOrDefaultAsync();
         if (task == null) return NotFound();
 
-        if (task.UserId != Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value) && !User.IsInRole("Admin"))
+        if (task.UserId != User.FindFirst(ClaimTypes.NameIdentifier)!.Value && !User.IsInRole("Admin"))
             return Forbid();
 
         await _context.Tasks.DeleteOneAsync(t => t.Id == id);

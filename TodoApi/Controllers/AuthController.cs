@@ -29,7 +29,6 @@ public class AuthController : ControllerBase
 
         var user = new User
         {
-            Id = Guid.NewGuid(),
             Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Role = dto.Email.Contains("admin") ? UserRole.Admin : UserRole.User // Авто-назначение админа по подстроке для тестов
@@ -71,7 +70,7 @@ public class AuthController : ControllerBase
         if (principal == null) return BadRequest(new { message = "Невалидный access токен" });
 
         var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var user = await _context.Users.Find(u => u.Id == Guid.Parse(userId!)).FirstOrDefaultAsync();
+        var user = await _context.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(); 
 
         if (user == null || user.RefreshToken != dto.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             return BadRequest(new { message = "Невалидный или истекший refresh токен" });
@@ -95,7 +94,7 @@ public class AuthController : ControllerBase
             .Set(u => u.RefreshToken, null)
             .Set(u => u.RefreshTokenExpiryTime, null);
             
-        await _context.Users.UpdateOneAsync(u => u.Id == Guid.Parse(userId), update);
+        await _context.Users.UpdateOneAsync(u => u.Id == userId, update);
         return Ok(new { message = "Выход успешен" });
     }
 }
